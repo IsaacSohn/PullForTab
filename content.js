@@ -1,8 +1,7 @@
-
 function addOverlay() {
     if (!document.body) {
-      console.error("Document body not available yet.");
-      return;
+        console.error("Document body not available yet.");
+        return;
     }
     const overlay = document.createElement("div");
     overlay.id = "blockOverlay"; // Assign a unique ID to the overlay
@@ -20,11 +19,16 @@ function addOverlay() {
     overlay.style.justifyContent = "center";
     overlay.style.fontSize = "24px";
 
-    //create her speech
+    // Create her speech
     const speech = document.createElement("div");
     speech.innerText = "Sensei! You must pull a 3-star student before continuing! Hehe~";
     speech.style.marginTop = "40px"; // Move text down by 40px
     overlay.appendChild(speech);
+
+    // Create result display area
+    const resultShow = document.createElement("div");
+    resultShow.style.marginTop = "40px"; // Move text down by 40px
+    overlay.appendChild(resultShow);
     
     // Create the image element
     const img = document.createElement("img");
@@ -51,51 +55,65 @@ function addOverlay() {
     document.body.appendChild(overlay);
     console.log("Overlay added");
 
-    console.log("playaudio message sent")
+    console.log("playaudio message sent");
     chrome.runtime.sendMessage({ action: "playAudio" });
-  }
 
-//LETS GO GAMBLINGLETS GO GAMBLINGLETS GO GAMBLINGLETS GO GAMBLINGLETS GO GAMBLINGLETS GO GAMBLINGLETS GO GAMBLINGLETS GO GAMBLINGLETS GO GAMBLINGLETS GO GAMBLINGLETS GO GAMBLINGLETS GO GAMBLING
+    // Store resultShow in overlay for easy access in simulateRates
+    overlay.resultShow = resultShow;
+}
+
+// Simulate pulls and display results
 function simulateRates() {
-      const overlay = document.getElementById("blockOverlay"); // Target by ID now
-      console.log("simulateRates function called"); // Confirm function is being called
-      const maxRate = 1000;
-  
-      for (let i = 0; i < 10; i++) {
-          const pulledRate = Math.random() * (maxRate - 1) + 1;
-          console.log('Pulled rate: ' + pulledRate); // Log pulled rate to check randomness
-  
-          if (pulledRate <= 30) {
-              console.log('3*'); // This should log if pulledRate <= 30
-              overlay.remove(); // Remove the overlay element entirely
-              console.log("Overlay removed");
-          } else if (pulledRate <= 215) {
-              console.log('2*'); // This should log if 30 < pulledRate <= 215
-          } else {
-              console.log('1*'); // This should log if pulledRate > 215
-          }
-      }
-  }
+    const overlay = document.getElementById("blockOverlay"); // Target by ID now
+    const resultShow = overlay.resultShow; // Access resultShow element
+    console.log("simulateRates function called"); // Confirm function is being called
+    const maxRate = 1000;
+    let results = "";
 
-   
-  // Check if document body is ready, or wait for it to load
-  if (document.body) {
-    addOverlay();
-  } else {
-    document.addEventListener("DOMContentLoaded", addOverlay);
+    for (let i = 0; i < 10; i++) {
+        const pulledRate = Math.random() * (maxRate - 1) + 1;
+        console.log('Pulled rate: ' + pulledRate); // Log pulled rate to check randomness
 
-  }
-  
-  
-  // Listen for messages from the popup
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "unblock") {
-      const overlay = document.getElementById("blockOverlay"); // Target by ID now
-      if (overlay) {
-        simulateRates();
-      } else {
-        console.error("Overlay not found");
-      }
+        if (pulledRate <= 30) {
+            console.log('3*'); // This should log if pulledRate <= 30
+            results += "🟪";
+        } else if (pulledRate <= 215) {
+            console.log('2*'); // This should log if 30 < pulledRate <= 215
+            results += "🟨";
+        } else {
+            console.log('1*'); // This should log if pulledRate > 215
+            results += "🟦";
+        }
     }
-  });
-  
+
+    console.log(results);
+    resultShow.innerText = results; // Update result display with new results
+
+    // Check if a purple square (🟪) was pulled
+    if (results.includes("🟪")) {
+        setTimeout(() => {
+            overlay.remove(); // Remove the overlay after 2 seconds
+            console.log("Overlay removed");
+        }, 2000);
+    }
+}
+
+// Check if document body is ready, or wait for it to load
+if (document.body) {
+    addOverlay();
+} else {
+    document.addEventListener("DOMContentLoaded", addOverlay);
+}
+
+// Listen for messages from the popup
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "unblock") {
+        const overlay = document.getElementById("blockOverlay"); // Target by ID now
+        if (overlay) {
+            overlay.resultShow.innerText = ""; // Clear previous results before each pull
+            simulateRates();
+        } else {
+            console.error("Overlay not found");
+        }
+    }
+});
